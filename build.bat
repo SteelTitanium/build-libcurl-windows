@@ -1,6 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion 
 
+set CURL_VERSION=7.58.0
+set CURL_ZIP=curl-%CURL_VERSION%.zip
+
 set PROGFILES=%ProgramFiles%
 if not "%ProgramFiles(x86)%" == "" set PROGFILES=%ProgramFiles(x86)%
 
@@ -108,20 +111,15 @@ REM Housekeeping
 %RM% -rf curl.zip
 %RM% -rf build_*.txt
 
-REM Get download url .Look under <blockquote><a type='application/zip' href='xxx'>
-echo Get download url...
-%XIDEL% http://curl.haxx.se/download.html -e "//a[@type='application/zip' and ends-with(@href, '.zip')]/@href" > tmp_url
-set /p url=<tmp_url
-
-REM exit on errors, else continue
-if %errorlevel% neq 0 exit /b %errorlevel%
-
-REM Download latest curl and rename to curl.zip
-echo Downloading latest curl...
-%WGET% "http://curl.haxx.se%url%" -O curl.zip
+REM Download curl
+echo Downloading curl %CURL_VERSION%
+REM Force Invoke-WebRequest to use TLS 1.2
+powershell -Command [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
+    Invoke-WebRequest -Uri "https://curl.haxx.se/download/%CURL_ZIP%" -OutFile %CURL_ZIP%
 
 REM Extract downloaded zip file to tmp_libcurl
-%SEVEN_ZIP% x curl.zip -y -otmp_libcurl | FIND /V "ing  " | FIND /V "Igor Pavlov"
+REM %SEVEN_ZIP% x curl-%CURL_VERSION%.zip -y -otmp_libcurl | FIND /V "ing  " | FIND /V "Igor Pavlov"
+powershell -Command Expand-Archive -Path %CURL_ZIP% -DestinationPath tmp_libcurl
 
 cd tmp_libcurl\curl-*\winbuild
 
